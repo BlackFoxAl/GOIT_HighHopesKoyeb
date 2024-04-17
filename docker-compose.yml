@@ -13,7 +13,6 @@ services:
       - $POSTGRESDB_LOCAL_PORT:$POSTGRESDB_DOCKER_PORT
 
   app:
-    image: highhopes-image:latest
     depends_on:
       - postgresdb
     build: .
