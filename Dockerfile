@@ -5,7 +5,7 @@ FROM openjdk:17-oracle
 WORKDIR /app
 
 # Copy the application JAR file into the container
-COPY build/libs/High-Hopes-0.0.1-SNAPSHOT.jar /app/highhopes.jar
+COPY home/runner/work/GOIT_HighHopesKoyeb/GOIT_HighHopesKoyeb/build/libs/High-Hopes-0.0.1-SNAPSHOT.jar
 
 # Run the application upon container start
 CMD ["java", "-jar", "/app/highhopes.jar", "--spring.profiles.active=prod"]
