@@ -1,0 +1,28 @@
+name: Build and Package
+
+on:
+  push:
+    branches:
+      - main  # Adjust this to match your branch name
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: 17
+
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
+
+      - name: Archive JAR file
+        uses: actions/upload-artifact@v2
+        with:
+          name: High-Hopes
+          path: build/libs/High-Hopes-0.0.1-SNAPSHOT.jar
