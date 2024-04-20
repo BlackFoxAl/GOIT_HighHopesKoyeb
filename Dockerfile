@@ -1,11 +1,14 @@
-# Use the official Java 17 image with OpenJDK
-FROM openjdk:17-oracle
+# Build stage
+FROM openjdk:17-oracle AS builder
 
-# Switch to the /app working directory
 WORKDIR /app
+COPY . .
+RUN ./gradlew build
 
-# Copy the application JAR file into the container
-COPY home/runner/work/GOIT_HighHopesKoyeb/GOIT_HighHopesKoyeb/build/libs/High-Hopes-0.0.1-SNAPSHOT.jar /app/highhopes.jar
+# Run stage
+FROM openjdk:17-oracle AS runner
 
-# Run the application upon container start
+WORKDIR /app
+COPY --from=builder /app/build/libs/*.jar /app/highhopes.jar
+
 CMD ["java", "-jar", "/app/highhopes.jar", "--spring.profiles.active=prod"]
