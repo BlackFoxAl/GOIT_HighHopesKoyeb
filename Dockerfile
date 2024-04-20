@@ -24,7 +24,7 @@ FROM openjdk:17-jdk-alpine
 # Copy the jar file in and name it highhopes.jar.
 ARG BUILD_HOME
 ENV APP_HOME=$BUILD_HOME
-COPY --from=build-image $APP_HOME/build/libs/gradle-docker.jar highhopes.jar
+COPY --from=build-image $APP_HOME/build/libs/*.jar highhopes.jar
 
 # The command to run when the container starts.
 ENTRYPOINT java -jar highhopes.jar --spring.profiles.active=prod
