@@ -2,21 +2,15 @@
 ARG BUILD_HOME=/GOIT_HighHopesKoyeb
 
 # Gradle image for the build stage.
-FROM gradle:jdk17 as build-image
+FROM gradle:jdk17-jammy as build-image
 
 # Set the working directory.
 ARG BUILD_HOME
 ENV APP_HOME=$BUILD_HOME
 WORKDIR $APP_HOME
-
-# Copy the Gradle config, source code, and static analysis config
-# into the build container.
-COPY --chown=gradle:gradle build.gradle settings.gradle $APP_HOME/
-COPY --chown=gradle:gradle src $APP_HOME/src
-COPY --chown=gradle:gradle config $APP_HOME/config
-
+COPY . .
 # Build the application.
-RUN gradle --no-daemon build
+RUN ./gradlew clean build
 
 # Java image for the application to run in.
 FROM openjdk:17-jdk-alpine
