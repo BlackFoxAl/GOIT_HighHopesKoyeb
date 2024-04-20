@@ -1,5 +1,5 @@
 # Set a variable that can be used in all stages.
-ARG BUILD_HOME=/gradle-docker
+ARG BUILD_HOME=/GOIT_HighHopesKoyeb
 
 # Gradle image for the build stage.
 FROM gradle:jdk17 as build-image
