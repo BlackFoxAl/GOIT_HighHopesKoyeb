@@ -3,7 +3,7 @@ FROM openjdk:17-oracle AS builder
 
 WORKDIR /app
 COPY . .
-RUN chmod +x gradlew && ./gradlew build
+RUN chmod a+x gradlew && ./gradlew build
 
 # Run stage
 FROM openjdk:17-oracle AS runner
