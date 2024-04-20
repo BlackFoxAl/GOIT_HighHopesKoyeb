@@ -1,17 +1,23 @@
-# Gradle image for the build stage.
-FROM gradle:jdk17-jammy as build-image
+# Stage 1: Set up the build environment
+FROM gradle:8.7-jdk17 AS builder
 
-# Set the working directory.
+# Copy the application source code into the container
+COPY . /app
+
+# Set the working directory to /app
 WORKDIR /app
-COPY . .
-# Build the application.
-RUN chmod +x gradlew && ./gradlew clean build
 
-# Java image for the application to run in.
-FROM openjdk:17-jdk-alpine
+# Build the application
+RUN gradle build
 
-# Copy the jar file in and name it highhopes.jar.
-COPY --from=build-image app/build/libs/*.jar highhopes.jar
+# Stage 2: Create the runtime image
+FROM openjdk:17-alpine
 
-# The command to run when the container starts.
-ENTRYPOINT java -jar highhopes.jar --spring.profiles.active=prod
+# Set the working directory to /app
+WORKDIR /app
+
+# Copy the JAR file from the previous build stage
+COPY --from=builder /app/build/libs/High-Hopes-0.0.1-SNAPSHOT.jar /app/highhopes.jar
+
+# Run the application when the container starts
+CMD ["java", "-jar", "highhopes.jar", "--spring.profiles.active=prod"]
