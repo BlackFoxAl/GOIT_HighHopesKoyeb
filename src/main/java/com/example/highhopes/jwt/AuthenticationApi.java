@@ -45,7 +45,7 @@ public class AuthenticationApi {
      *
      * @param user The login entity that contains username and password
      * @return Returns the JWT token
-     *
+     * @see com.baeldung.jwt.User
      */
     @Operation(summary = "User Authentication", description = "Authenticate the user and return a JWT token if the user is valid.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", examples = @io.swagger.v3.oas.annotations.media.ExampleObject(value = "{\n" + "  \"username\": \"jane\",\n"
