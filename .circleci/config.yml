@@ -1,14 +1,16 @@
 version: 2.1
 
-# circle.yml
-machine:
-  services:
-    - docker
-
-dependencies:
-  pre:
-    - pip install docker-compose
-
-test:
-  pre:
-    - docker-compose up -d
+jobs:
+  build:
+    docker:
+      - image: docker:20.10.12
+    steps:
+      - checkout
+      - run:
+          name: Install Docker Compose
+          command: |
+            apk add --no-cache py-pip
+            pip install docker-compose
+      - run:
+          name: Build and run Docker Compose
+          command: docker-compose up -d
