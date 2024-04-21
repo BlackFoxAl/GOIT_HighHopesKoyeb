@@ -2,23 +2,34 @@ package com.example.highhopes.shortlink;
 
 import com.example.highhopes.user.User;
 import com.example.highhopes.user.UserRepository;
+import com.example.highhopes.utils.CookieUtils;
 import com.example.highhopes.utils.NotFoundException;
-import java.util.List;
-import java.util.Optional;
-
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 
 
 @Service
 public class ShortLinkService {
 
+    @Value("${shortlink.generate.length}")
+    private int shortLinkLength;
+
     private final ShortLinkRepository shortLinkRepository;
     private final UserRepository userRepository;
     private static final String USER_NOT_FOUND = "User not found with username: ";
+    private final CookieUtils cookieUtils = new CookieUtils();
 
     public ShortLinkService(final ShortLinkRepository shortLinkRepository,
             final UserRepository userRepository) {
@@ -39,10 +50,18 @@ public class ShortLinkService {
                 .orElseThrow(NotFoundException::new);
     }
 
-    public Long create(final ShortLinkDTO shortLinkDTO) {
+//    public Long create(final ShortLinkDTO shortLinkDTO) {
+//        final ShortLink shortLink = new ShortLink();
+//        mapToEntity(shortLinkDTO, shortLink);
+//        return shortLinkRepository.save(shortLink).getId();
+//    }
+
+
+    @Transactional
+    public String create(final ShortLinkCreateRequestDTO shortLinkCreateRequestDTO) {
         final ShortLink shortLink = new ShortLink();
-        mapToEntity(shortLinkDTO, shortLink);
-        return shortLinkRepository.save(shortLink).getId();
+        mapToEntityCreate(shortLinkCreateRequestDTO, shortLink);
+        return shortLinkRepository.save(shortLink).getShortUrl();
     }
 
     public void update(final Long id, final ShortLinkDTO shortLinkDTO) {
@@ -66,7 +85,7 @@ public class ShortLinkService {
         shortLinkDTO.setExpiryDate(shortLink.getExpiryDate());
         shortLinkDTO.setStatus(shortLink.isActive());
         shortLinkDTO.setClicks(shortLink.getClicks());
-        shortLinkDTO.setUser(shortLink.getUser() == null ? null : shortLink.getUser().getId());
+//        shortLinkDTO.setUser(shortLink.getUser() == null ? null : shortLink.getUser().getId());
         return shortLinkDTO;
     }
 
@@ -80,7 +99,7 @@ public class ShortLinkService {
             User user = userOptional.get();
             shortLink.setUser(user);
         } else {
-            throw new UsernameNotFoundException(USER_NOT_FOUND + currentUsername);
+            throw new NotFoundException(USER_NOT_FOUND + currentUsername);
         }
 
         shortLink.setId(shortLinkDTO.getId());
@@ -89,13 +108,123 @@ public class ShortLinkService {
         shortLink.setOriginalUrl(shortLinkDTO.getOriginalUrl());
         shortLink.setShortUrl(shortLinkDTO.getShortUrl());
         shortLink.setCreationDate(shortLinkDTO.getCreationDate());
-        shortLink.setExpiryDate(shortLinkDTO.getExpiryDate());
+        shortLink.setExpiryDate(OffsetDateTime.now().plusDays(7));
         shortLink.setActive(shortLinkDTO.getStatus());
         shortLink.setClicks(shortLinkDTO.getClicks());
-        final User user = shortLinkDTO.getUser() == null ? null : userRepository.findById(shortLinkDTO.getUser())
-                .orElseThrow(() -> new NotFoundException("user not found"));
-        shortLink.setUser(user);
+//        final User user = shortLinkDTO.getUser() == null ? null : userRepository.findById(shortLinkDTO.getUser())
+//                .orElseThrow(() -> new NotFoundException("user not found"));
+//        shortLink.setUser(user);
         return shortLink;
+    }
+
+    private ShortLink mapToEntityCreate(final ShortLinkCreateRequestDTO shortLinkCreateRequestDTO, final ShortLink shortLink) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        Optional<User> userOptional = userRepository.findByUsername(currentUsername);
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            shortLink.setUser(user);
+        } else {
+            throw new NotFoundException(USER_NOT_FOUND + currentUsername);
+        }
+
+        String shortURL =
+                ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString() +
+                        "/" +  generateURL(shortLinkLength);
+        shortLink.setShortUrl(shortURL);
+
+        shortLink.setOriginalUrl(shortLinkCreateRequestDTO.getOriginalUrl());
+        shortLink.setCreationDate(OffsetDateTime.now());
+        shortLink.setExpiryDate(OffsetDateTime.now().plusDays(7));
+        shortLink.setActive(true);
+        shortLink.setClicks(0);
+        return shortLink;
+    }
+
+    public static String generateURL(int length) {
+        String CHARACTERS = "abcdefghijklmnopqrstuvwxyz123456789";
+        Random RANDOM = new Random();
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            int randomIndex = RANDOM.nextInt(CHARACTERS.length());
+            char randomChar = CHARACTERS.charAt(randomIndex);
+            sb.append(randomChar);
+        }
+        return sb.toString();
+    }
+
+
+    @Cacheable(value = "resolveUrlCache", key = "#shortUrl")
+    public GetOriginalUrlResponse getOriginalUrl(String shortUrl) {
+        GetOriginalUrlResponse originalUrlResponse = new GetOriginalUrlResponse();
+        ShortLink linkDb = shortLinkRepository.findByShortLink(shortUrl);
+
+        if (linkDb != null) {
+            originalUrlResponse.setOriginalUrl(linkDb.getOriginalUrl());
+            originalUrlResponse.setError(GetOriginalUrlResponse.Error.OK);
+//            incrementClicks(linkDb);
+        } else {
+            originalUrlResponse.setError(GetOriginalUrlResponse.Error.LINK_NOT_FOUND);
+        }
+
+        return originalUrlResponse;
+    }
+
+    public void incrementClicks(String shortLink) {
+        ShortLink link = shortLinkRepository.findByShortLink(shortLink);
+        if(link != null) {
+            link.setClicks(link.getClicks() + 1);
+            shortLinkRepository.save(link);
+        }
+    }
+
+    public List<ShortLinkDTO> getActiveShortLinks() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        Optional<User> userOptional = userRepository.findByUsername(currentUsername);
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            List<ShortLink> activeShortLinks = shortLinkRepository.findAllActiveShortLinks(user.getId());
+            return convertToDTO(activeShortLinks);
+        } else {
+            throw new NotFoundException(USER_NOT_FOUND + currentUsername);
+        }
+
+    }
+
+    public List<ShortLinkDTO> getAllShortLinks() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        Optional<User> userOptional = userRepository.findByUsername(currentUsername);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            List<ShortLink> allShortLinks = shortLinkRepository.findByUserId(user.getId());
+            return convertToDTO(allShortLinks);
+        } else {
+            throw new NotFoundException(USER_NOT_FOUND + currentUsername);
+        }
+
+    }
+
+    private List<ShortLinkDTO> convertToDTO(List<ShortLink> shortLinks) {
+        List<ShortLinkDTO> shortLinkDTOs = new ArrayList<>();
+        for (ShortLink shortLink : shortLinks) {
+            ShortLinkDTO shortLinkDTO = new ShortLinkDTO();
+            shortLinkDTO.setId(shortLink.getId());
+            shortLinkDTO.setOriginalUrl(shortLink.getOriginalUrl());
+            shortLinkDTO.setShortUrl(shortLink.getShortUrl());
+            shortLinkDTO.setCreationDate(shortLink.getCreationDate());
+            shortLinkDTO.setExpiryDate(shortLink.getExpiryDate());
+            shortLinkDTO.setStatus(shortLink.isActive());
+            shortLinkDTO.setClicks(shortLink.getClicks());
+            shortLinkDTO.setUserId(shortLink.getUser().getId());
+            shortLinkDTOs.add(shortLinkDTO);
+        }
+        return shortLinkDTOs;
     }
 
 }
