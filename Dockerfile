@@ -19,5 +19,6 @@ WORKDIR /app
 # Copy the JAR file from the previous build stage
 COPY --from=builder /app/build/libs/High-Hopes-0.0.1-SNAPSHOT.jar /app/highhopes.jar
 
+
 # Run the application when the container starts
 CMD ["java", "-jar", "highhopes.jar", "--spring.profiles.active=prod"]
