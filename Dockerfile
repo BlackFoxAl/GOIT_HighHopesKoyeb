@@ -8,7 +8,7 @@ COPY . /app
 WORKDIR /app
 
 # Build the application
-RUN gradle build
+RUN gradle build --scan
 
 # Stage 2: Create the runtime image
 FROM openjdk:17-alpine
