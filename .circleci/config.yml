@@ -1,0 +1,14 @@
+version: 2.1
+
+# circle.yml
+machine:
+  services:
+    - docker
+
+dependencies:
+  pre:
+    - pip install docker-compose
+
+test:
+  pre:
+    - docker-compose up -d
