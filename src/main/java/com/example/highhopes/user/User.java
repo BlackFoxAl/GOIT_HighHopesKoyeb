@@ -21,7 +21,16 @@ public class User {
 
     @Id
     @Column(nullable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(
+            name = "primary_sequence",
+            sequenceName = "primary_sequence",
+            allocationSize = 1,
+            initialValue = 10
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "primary_sequence"
+    )
     private Long id;
 
     @Column(nullable = false, length = 100)
@@ -41,11 +50,6 @@ public class User {
     @Column(nullable = false)
     private OffsetDateTime lastUpdated;
 
-    @PrePersist
-    public void prePersist() {
-        this.dateCreated = OffsetDateTime.now();
-        this.lastUpdated = OffsetDateTime.now();
-    }
 
     @PreUpdate
     public void preUpdate() {
