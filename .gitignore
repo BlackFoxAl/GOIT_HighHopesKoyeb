@@ -1,7 +1,6 @@
 HELP.md
 .gradle
 build/
-!/build/libs/High-Hopes-0.0.1-SNAPSHOT.jar
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -19,6 +18,7 @@ bin/
 !**/src/test/**/bin/
 
 ### IntelliJ IDEA ###
+!/build/libs/High-Hopes-0.0.1-SNAPSHOT.jar
 .idea
 *.iws
 *.iml
